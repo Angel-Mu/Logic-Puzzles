@@ -1,0 +1,16 @@
+body{
+	background-image: url("images/paper_bg1.png");
+	font-family: "Segoe UI";
+		color:#8ea5c3; 
+	font-size:18px; 
+	font-family:'Segoe Ui';
+}
+.marca{
+	padding: 20px;
+	width:130px; 
+	margin:0 auto; 
+	text-align:center; 
+	color:#8ea5c3; 
+	font-size:20px; 
+	font-family:'Segoe Ui';
+}

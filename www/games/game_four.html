@@ -1,0 +1,417 @@
+<html lang="es">
+	<meta charset="UTF-8">
+        <title>Minas</title>
+        <style>
+body{
+            width:100%;
+            margin:0 auto;
+            background-image: url("../images/paper_bg1.png");
+            font-family: "Segoe UI";
+        }
+        h1{
+            text-align: center;
+        }
+        #miCanvas{
+            box-shadow: 0px 0px 5px black;
+            background: #a3b5cd;
+
+        }
+            </style>
+<script>
+/*linea que no se ve
+linea 21
+****************************************************************************/
+var COLUMNAS        =10;                     //no. de columnas
+var RENGLONES       =10;                     //no. de RENGLONES
+var TODAS           =COLUMNAS * RENGLONES;  //todas las celdas
+var MINAS           =COLUMNAS * 2;          //minas del juego
+var VECINOS         =8;                     //numero de VECINOS
+var MATRIZ_RENGLON  =20;                    //coordenadas en pantalla
+var MATRIZ_COLUMNA  =320;                   //coordenadas en pantalla
+var ANCHO_CUADRO    =30;                    //Ancho cuadro
+var NUMERO_MINAS    =0;                     //contador minas
+var MINAS_ENCONTRADAS=0;                    //contador minas encontradas
+var MINAS_MARCADAS  =0;                     //contador minas encontradas
+var banderaMarca;                           //bandera para marcar minas
+var BOMBA           =9;                     //cuadro con la mina
+/*var INICIO        =12;                    //cuadro de INICIO
+var BLANCO          =13;                    //cuadro espacio en blanco*/
+var OK              =14;                    //cuadro con ok, mina encontradas
+//
+var CUBIERTO        =0;                     //ESTATUS celda
+var DESCUBIERTO     =1;                     //ESTATUS celda
+var MARCA_MINA      =2;                     //CUADRO CON LA MARCA MINA
+//
+var celdas_array = new Array();            //VECTOR CON LOS DATOS DE LAS CELDAS
+var colorTecla = "#5f7097";
+var colorMargen = "white";
+var colorVoltea= "#4674e0";
+/*******************************************************************************
+FUNCIONES
+********************************************************************************/
+function Celda(ren, col, x, y, w, h, i, minas, estado){
+    this.ren = ren;
+    this.col = col;
+    this.x = x;
+    this.y=y;
+    this.h=h;
+    this.w=w;
+    this.i=i;
+    this.minas=minas;
+    this.estado=estado;
+    this.dibuja=dibujaCelda;
+    this.voltea=volteaCelda;
+    this.marca=marcarCelda;
+}
+function Bandera(){
+    this.x=250;
+    this.y=345;
+    this.w=80;
+    this.h=20;
+    this.estado=false;
+}
+function dibujaCelda(){
+    ctx.fillStyle=colorTecla;
+    ctx.strokeStyle=colorMargen;
+    ctx.fillRect(this.x,this.y,this.w,this.h);
+    ctx.strokeRect(this.x,this.y,this.w,this.h);
+}
+function marcarCelda(){
+    ctx.save();
+    ctx.fillStyle=colorTecla;
+    ctx.strokeStyle=colorMargen;
+    ctx.fillRect(this.x,this.y,this.w,this.h);
+    ctx.strokeRect(this.x,this.y,this.w,this.h);
+    //
+    //estado = 0 no volteada
+    //estado=1 volteada
+    //estado = 2 marcada
+    if (this.estado==0){
+        ctx.fillStyle = "red";
+        ctx.font="bold 12px Segoe Ui";
+        ctx.fillText("?", this.x+this.w/2-5, this.y+this.h/2+5);
+        this.estado=MARCA_MINA;
+        MINAS_MARCADAS++;
+        MINAS--;
+        if(MINAS==0){
+            findelJuego();
+        }
+    }else if(this.estado==MARCA_MINAS){
+        ctx.fillStyle="red";
+        ctx.font="bold 12px Segoe Ui";
+        ctx.fillText("", this.x+this.w/2-5,this.y+this.h/2+5);
+        this.estado=CUBIERTO;;
+        MINAS_MARCADAS--;
+        MINAS++;
+    }
+    ctx.restore();
+    marcardor();
+}
+function volteaCelda(){
+    ctx.save();
+    ctx.fillStyle=colorVoltea;
+    ctx.strokeStyle=colorMargen;
+    ctx.fillRect(this.x,this.y,this.w, this.h);
+    ctx.strokeRect(this.x,this.y,this.w,this.h);
+    //
+    ctx.fillStyle="black";
+    ctx.font="bold 12px Segoe Ui";
+    if(this.minas==BOMBA){
+        ctx.fillText("*",this.x+this.w/2-5, this.y+this.h/2+5);
+    }else if(this.minas==0){
+        ctx.fillText(" ",this.x+this.w/2-5,this.y+this.h/2+5);
+    }else if(this.minas==OK){
+        ctx.fillText("OK",this.x+this.w/2-6,this.y+this.h/2+5);
+    }else{
+        ctx.fillText(this.minas, this.x+this.w/2-5, this.y+this.h/2+5);
+    }
+}
+function marcador(){
+    ctx.clearRect(50,340,360,30);
+    ctx.strokeStyle=colorMargen;
+    ctx.strokeRect(50,340,360,30);
+    //
+    ctx.fillStyle="black";
+    ctx.font="bold 12px Segoe Ui";
+    ctx.fillText("Mines",60,360);
+    ctx.fillText("Marked", 125,360);
+    ctx.fillText("Found",195,360);
+    //
+    ctx.fillStyle="blue";
+    ctx.font="bold 12px Segoe Ui";
+    ctx.fillText(MINAS,100,360);
+    ctx.fillText(MINAS_MARCADAS,175,360);
+    ctx.fillText(MINAS_ENCONTRADAS, 240,360);
+    //
+    estadoBandera()
+    //
+    ctx.fillStyle="black";
+}
+function estadoBandera(){
+    ctx.save();
+    ctx.clearRect(banderaMarca.x, banderaMarca.y,banderaMarca.w,banderaMarca.h);
+    if(banderaMarca.estado){
+        ctx.fillStyle="white";
+        ctx.fillText("Flag",270,360);
+        ctx.fillStyle="red";
+        ctx.fillText(banderaMarca.estado, 300,360);
+    } else{
+        ctx.fillStyle="black";
+        ctx.fillText("Flag", 270,360);
+        ctx.fillStyle="blue";
+        ctx.fillText(banderaMarca.estado, 300,360);
+    }
+    ctx.restore();
+}
+function tablero(){
+    banderaMarca= new Bandera();
+    MATRIZ_COLUMNA=(canvas.width - (COLUMNAS * ANCHO_CUADRO))/2
+    //Ciclo RENGLONES
+    for(i=0; i < RENGLONES; i++){
+    //Ciclo COLUMNAS
+        for(j=0;j<COLUMNAS;j++){
+            //calcula indice
+            ii=j+i* COLUMNAS;
+            //coordenadas x cuadro
+            x=MATRIZ_COLUMNA + j* ANCHO_CUADRO;
+            //coordenada y cuadro
+            y=MATRIZ_RENGLON+i * ANCHO_CUADRO;
+            var celda = new Celda(i,j,x,y, ANCHO_CUADRO,ANCHO_CUADRO,ii,0,0);
+            celdas_array.push(celda);
+            celda.dibuja();
+        }
+    }
+}
+function ajusta(xx,yy){
+    var posCanvas= canvas.getBoundingClientRect();
+    var x= xx - posCanvas.left;
+    var y= yy - posCanvas.top;
+    return {x:x, y:y}
+}
+function selecciona(e){
+        var pos = ajusta(e.clientX,e.clientY);
+        var x= pos.x;
+        var y= pos.y;
+        var celda;
+        //
+        for(var i=0; i<celdas_array.length;i++){
+            celda=celdas_array[i];
+            if(celda.x >0){
+                if( (x > celda.x ) && (x < celda.x + celda.w ) && (y > celda.y ) && ( y < celda.y+ celda.h) ){
+                    break;
+                }
+            }
+        }
+        if(i<celdas_array.length){
+            if(banderaMarca.estado){
+                celda.marca();
+            }else{
+                celda.voltea();
+                if(celda.minas==BOMBA){
+                    findelJuego();
+                }else{
+                    buscaBlanco(i);
+                }
+            }
+        }else if ( ( x > banderaMarca.x ) && ( x < banderaMarca.x + banderaMarca.w) && (y > banderaMarca.y) && (y < banderaMarca.y + banderaMarca.h)){
+                banderaMarca.estado=!banderaMarca.estado;
+                estadoBandera();
+        }
+}
+/**********************************************************************
+Genera MINAS
+***********************************************************************/
+function generaMinas(){
+        var celda;
+        do{
+            i= Math.floor(Math.random()*celdas_array.length);
+            celda=celdas_array[i];
+            //verifica campo
+            if(celda.minas != BOMBA){
+                celda.minas = BOMBA;
+                console.log(celda.ren+","+celda.col+": "+celda.minas);
+                NUMERO_MINAS++;
+            }
+        }while(NUMERO_MINAS<MINAS)
+}
+/**********************************************************************
+verifica los vecinos de celda
+***********************************************************************/
+function calculaVecinos(){
+    var celda;
+    for(i=0;i<celdas_array.length;i++){
+        celda=celdas_array[i];
+        console.log("Minas antes"+celda.minas);
+        //que no sea BOMBA
+        if(celda.minas!=BOMBA){
+        //barre a los vecinos
+            for(j=0;j<VECINOS;j++){
+                //sumariza
+                celda.minas += verificaVecino(i,j);
+            }
+        }
+            console.log("Minas despues"+ celda.minas);
+    }
+}
+/**********************************************************************
+verifica los ocho puntos posibles de contacto de cada celda OK 
+***********************************************************************/
+function verificaVecino(indice, vecino){
+    console.log("Verifica vecino de la celda"+indice+"vecino"+" ");
+    //no hay BOMBA
+    var SALIDA = 0;
+    //calcula indice vecino
+    var iVecino = indiceVecino(indice, vecino);
+    var celda;
+    //si existe vecino
+    if(iVecino>0){
+        var celda =celdas_array[iVecino];
+        if(celda.minas==BOMBA){
+            //suma uno
+            SALIDA = 1; 
+        }
+    }
+    console.log("cuadro "+SALIDA);
+    //regresa
+    return SALIDA
+}
+/**********************************************************************
+Verifica cada uno de los puntos para encontrar al vecino correspondiente. OK
+si no tiene vecino(una orilla) regresa un -1
+***********************************************************************/
+function indiceVecino(numCelda,numVecino){
+    //recupera coordenadas
+    var renglonVecino=celdas_array[numCelda].ren;
+    var columnaVecino=celdas_array[numCelda].col;
+    //console.log(renglonVecino+" "+columnaVecino+" "+numCelda+" minas"+celdas_array[numCelda].minas);
+    //busca coordenadas
+    //segun el arreglo
+    if(numVecino==0){
+        renglonVecino--;
+        columnaVecino--;
+    }else if(numVecino==1){
+        renglonVecino--;
+    }else if(numVecino==2){
+        renglonVecino--;
+        columnaVecino++;
+    }else if(numVecino==3){
+        columnaVecino++;
+    } else if(numVecino==4){
+        renglonVecino++;
+        columnaVecino++;
+    }else if(numVecino==5){
+        renglonVecino++;
+    }else if (numVecino==6){
+        renglonVecino++;
+        columnaVecino--;
+    }else if(numVecino==7){
+            columnaVecino--;
+    }
+    //si no existe regresa -1
+    if(columnaVecino <0 || columnaVecino == COLUMNAS){
+        return -1;
+    }
+    if (renglonVecino < 0 || renglonVecino == RENGLONES){
+        return -1;
+    }
+    //calcula indice
+    return columnaVecino + renglonVecino * COLUMNAS;
+        
+}
+/**********************************************************************
+funcion recursiva para destapar las celdas vecinas cuando se pulsa una celda en blanco
+***********************************************************************/
+function buscaBlanco(numCelda){
+    console.log("entro a buscarBlanco"+numCelda);
+    //barre vecinos
+    for(var i=0; i<VECINOS; i++){
+        //calcula indice
+        iVecino=indiceVecino(numCelda,i);
+        //si existe
+        if(iVecino>-1){
+            columnaVecino=celdas_array[iVecino].col;
+            renglonVecino=celdas_array[iVecino].ren;
+            celda=celdas_array[iVecino];
+            if(celda.minas==0){
+                if(celda.estado==CUBIERTO){
+                    celda.voltea();
+                    celda.estado=DESCUBIERTO;
+                    buscaBlanco(iVecino);
+                }
+            }else {
+            //si es numero y no bomba
+            //descubre cuadro
+            if(celda.minas!=BOMBA && celda.estado == CUBIERTO){
+                celda.voltea();
+                //actualiza estado
+                celda.estado=DESCUBIERTO;
+            }
+        }
+    }
+}
+    return 0;
+}
+/********************************************************************** line 364
+Destapa las celdas, calcula resultados y los despliega
+***********************************************************************/
+function findelJuego(){
+    var INDICE, columnaVecino, columnaVecino,i,j,mc ,myMinas
+        //barre renglones
+        for(i=0;i<RENGLONES;i++){
+            //barre columnas
+            for(j=0;j<COLUMNAS;j++){
+                //calcula INDICE
+                INDICE = j+i*COLUMNAS;
+                //coordenadas columna
+                columnaVecino=celdas_array[INDICE].col;
+                //coordenadas RENGLONES
+                renglonVecino= celdas_array[INDICE].ren;
+                //
+                celda=celdas_array[INDICE];
+                if(celda.minas==BOMBA && celda.estado==MARCA_MINA){
+                    //verifica minas
+                    MINAS_ENCONTRADAS++;
+                    //cambia a OK
+                    celda.minas=OK;
+                }
+                //descubre cuadro
+            celda.voltea();
+            //cambia ESTATUS
+            celda.estado= DESCUBIERTO;
+            
+            }
+        }
+        //despliega resultado
+        marcador();
+}
+window.onload = function(){
+    canvas = document.getElementById("miCanvas");
+    if(canvas && canvas.getContext){
+        ctx = canvas.getContext("2d");
+        if(ctx){
+            tablero();
+            generaMinas();
+            calculaVecinos();
+            canvas.addEventListener("click",selecciona,false);
+            marcador();
+        }else {
+            alert("Error!!! creating context");
+        }
+    }
+}
+</script>
+</head>
+<body>
+    <div style="width:100%; margin:0 auto;">
+        <a href="../menu.html"><img src="../images/back.png" style="width:10%;margin-left:8%;margin-right:8%;padding-top:3%;"/></a>
+        <img src="../images/game_four.png" style="width:35%; margin-left:5%;margin-right:5%;"><br/>
+    </div>
+    <div style="width:80%; margin:0 auto;">
+        <canvas id="miCanvas" width="460px" height="460px">
+            Navegador no soporta canvas
+        </canvas>
+	</div>
+</body>
+</html>
+        
+        
